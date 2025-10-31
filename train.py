@@ -32,7 +32,7 @@ labels = data['species'].unique()
 input_example = X_train.iloc[:5]
 
 search_space = {
-    'max_depth': hp.choice('max_depth', [2, 5, 10, 15, 20]),
+    'max_depth': hp.choice('max_depth', [2, 5, 10]),
     'min_samples_leaf': hp.uniform('min_samples_leaf', 0.01, 0.5)
 }
 
