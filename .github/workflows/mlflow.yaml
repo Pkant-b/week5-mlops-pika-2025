@@ -1,0 +1,53 @@
+name: Model-CI-mlflow
+
+on:
+  push:
+    branches: [ master, dev ]
+  pull_request:
+    branches: [ master ]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  test-and-report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v5.0.0
+
+      - name: Setup CML (Continuous Machine Learning)
+        uses: iterative/setup-cml@v2.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Setup DVC
+        uses: iterative/setup-dvc@v1
+
+      - name: Pull DVC data
+        run: |
+          dvc pull
+
+      - name: Run Pytest sanity checks
+        env:
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+        run: |
+          pytest test_model.py
+
+      - name: Create CML report
+        env:
+          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "## Model Sanity Check Report" > report.md
+          echo "Test results from the latest model in the MLflow Registry:" >> report.md
+          cml-publish artifacts/confusion_matrix_mlflow.png --md >> report.md
+          cml comment create report.md
