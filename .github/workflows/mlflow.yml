@@ -38,7 +38,7 @@ jobs:
         id: 'auth'
         uses: 'google-github-actions/auth@v3'
         with:
-          credentials_json: '${{ secrets.GCP_SA }}'
+          credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
     
       - name: Pulling Data using DVC
         run: |
