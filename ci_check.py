@@ -5,6 +5,7 @@ import pandas as pd
 from tabulate import tabulate
 from sklearn.metrics import accuracy_score
 from dotenv import load_dotenv
+import joblib  # <--- Make sure this is in requirements.txt
 
 # Load .env file (for local testing)
 load_dotenv()
@@ -28,7 +29,7 @@ mlflow.set_tracking_uri(tracking_uri)
 client = mlflow.tracking.MlflowClient()
 
 try:
-    # --- 2. Get Latest Model Version ---
+    # --- 2. Get Latest Model Version (Logic from your reference) ---
     print(f"Fetching latest version of model: {MODEL_NAME}")
     versions = client.search_model_versions(
         filter_string=f"name='{MODEL_NAME}'",
@@ -43,11 +44,29 @@ try:
     print(f"Found version: {latest_version.version}, Run ID: {latest_version.run_id}")
 
     # --- 3. Run Sanity Check (The Core Task) ---
-    print("Loading model for sanity check...")
-    # Load model from the registry URI
-    model_uri = f"models:/{MODEL_NAME}/{latest_version.version}"
-    model = mlflow.sklearn.load_model(model_uri)
     
+    # --- Download the model artifacts (Logic from your reference) ---
+    print(f"Downloading model artifacts from run: {latest_version.run_id}")
+    
+    # This downloads the 'model' folder (logged in train.py) into the 'ARTIFACT_DIR'
+    mlflow.artifacts.download_artifacts(
+        run_id=latest_version.run_id,
+        artifact_path="model", # The artifact_path from train.py
+        dst_path=ARTIFACT_DIR
+    )
+    
+    # --- Load the model from the downloaded file ---
+    # The default path MLflow saves to is 'artifacts/model/model.pkl'
+    model_path = os.path.join(ARTIFACT_DIR, "model", "model.pkl")
+    if not os.path.exists(model_path):
+        print(f"Failed to download model. Expected file not found at: {model_path}")
+        sys.exit(1)
+        
+    print("Loading model for sanity check...")
+    model = joblib.load(model_path)
+    print("Model loaded successfully from downloaded artifacts.")
+
+    # --- Run the sanity check ---
     print("Loading test data...")
     df = pd.read_csv(DATA_PATH)
     X_test = df[["sepal_length", "sepal_width", "petal_length", "petal_width"]]
@@ -69,8 +88,7 @@ try:
     metrics = run.data.metrics
     
     # Download the confusion matrix plot
-    # Note: Make sure the artifact name "confusion_matrix.png" matches what you log in train.py
-    cm_artifact_path = "confusion_matrix.png"
+    cm_artifact_path = "confusion_matrix.png" # Must match name in train.py
     local_cm_path = os.path.join(ARTIFACT_DIR, "confusion_matrix.png")
     
     client.download_artifacts(
@@ -102,6 +120,7 @@ try:
     print("\n### Model Metrics")
     print(metrics_table_string)
     print("\n### Confusion Matrix")
+    # We must use the local path for the CML report
     print(f"![Confusion Matrix]({local_cm_path})")
 
 except Exception as e:
