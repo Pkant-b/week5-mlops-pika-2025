@@ -1,5 +1,5 @@
 .venv/
 .env
-./matrix/
-./mlflow-data/
-./mlruns/
+matrix/
+mlflow-data/
+mlruns/
