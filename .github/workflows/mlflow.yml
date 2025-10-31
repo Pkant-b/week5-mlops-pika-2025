@@ -49,6 +49,8 @@ jobs:
           python3 train.py
 
       - name: Load Model from mlflow
+        env:
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
         run: |
           python3 ci_check.py
 
@@ -59,10 +61,8 @@ jobs:
       
       - name: Create cml report
         run: |
-          # --- 1. Create the base report content ---
           echo "# CML Test & Evaluation Report" > report.md
           
-          # --- 2. Section 1: Pytest Results ---
           echo "## Pytest Sanity Check" >> report.md
           # Check if output.txt exists before trying to cat it
           if [ -f output.txt ]; then
